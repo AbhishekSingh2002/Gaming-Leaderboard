@@ -127,10 +127,34 @@ class LeaderboardService {
     }
 
     // Fetch from database
-    const playerRank = await leaderboardRepo.getPlayerRank(userId);
+    let playerRank = await leaderboardRepo.getPlayerRank(userId);
 
     if (!playerRank) {
-      throw new Error('Player not found in leaderboard');
+      // Auto-create user if not found
+      const result = await withTransaction(async (client) => {
+        // Create user first
+        const user = await leaderboardRepo.createUser(client, userId);
+        
+        // Create leaderboard entry with 0 score
+        const leaderboardEntry = await leaderboardRepo.createLeaderboardEntry(client, userId, 0);
+        
+        // Get the actual rank after creation
+        const rankQuery = `
+          SELECT 
+            l.user_id,
+            u.username,
+            l.total_score,
+            ROW_NUMBER() OVER (ORDER BY l.total_score DESC) as rank
+          FROM leaderboard l
+          JOIN users u ON l.user_id = u.id
+          WHERE l.user_id = $1
+        `;
+        const rankResult = await client.query(rankQuery, [userId]);
+        
+        return rankResult.rows[0];
+      });
+      
+      playerRank = result;
     }
 
     // Store in cache

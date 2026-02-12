@@ -1,6 +1,49 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const getApiBaseUrl = () => {
+  // Check if VITE_API_URL is explicitly set (for local development or custom config)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // For production deployments
+  if (import.meta.env.PROD) {
+    // Try to get backend URL from Render environment variable first
+    const renderBackendUrl = import.meta.env.VITE_RENDER_BACKEND_URL;
+    if (renderBackendUrl) {
+      return renderBackendUrl;
+    }
+    
+    // For Render: try to construct backend URL
+    if (typeof window !== 'undefined') {
+      const currentHost = window.location.origin;
+      if (currentHost.includes('onrender.com')) {
+        // Extract service name and add -backend suffix
+        const urlParts = currentHost.split('//');
+        const hostParts = urlParts[1].split('.');
+        const serviceName = hostParts[0];
+        return `${urlParts[0]}//${serviceName}-backend.${hostParts.slice(1).join('.')}/api`;
+      }
+    }
+    
+    // Fallback to relative URL (same domain)
+    return '/api';
+  }
+  
+  // Development fallback
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug: Log the API base URL
+console.log('API Base URL:', API_BASE_URL);
+console.log('Environment:', {
+  PROD: import.meta.env.PROD,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  VITE_RENDER_BACKEND_URL: import.meta.env.VITE_RENDER_BACKEND_URL,
+  currentHost: typeof window !== 'undefined' ? window.location.origin : 'N/A'
+});
 
 /**
  * API Service
@@ -46,9 +89,19 @@ export const leaderboardAPI = {
    */
   getTopPlayers: async (limit = 10) => {
     try {
+      console.log(`Fetching top players from: ${API_BASE_URL}/leaderboard/top?limit=${limit}`);
       const response = await api.get(`/leaderboard/top?limit=${limit}`);
       return response.data;
     } catch (error) {
+      console.error('Error fetching top players:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        baseURL: error.config?.baseURL,
+        url: error.config?.url
+      });
       throw error.response?.data || error;
     }
   },

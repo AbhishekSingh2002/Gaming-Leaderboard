@@ -405,6 +405,42 @@ python3 load-test.py
 
 ## 🚀 Deployment
 
+### Render Deployment (Recommended)
+
+#### Backend Deployment
+1. **Create Render Account**
+   - Sign up at [render.com](https://render.com)
+   - Connect your GitHub repository
+
+2. **Deploy Backend**
+   - Create new "Web Service"
+   - Select your repository
+   - Choose "Node" runtime
+   - Set build command: `npm install && cd .. && cd frontend && npm install && npm run build`
+   - Set start command: `cd backend && npm start`
+   - Add environment variables:
+     ```
+     NODE_ENV=production
+     DATABASE_URL=your_postgresql_url
+     REDIS_URL=your_redis_url
+     PORT=8000
+     ```
+
+3. **Deploy Frontend**
+   - Create new "Static Site"
+   - Select your repository  
+   - Set build command: `cd frontend && npm install && npm run build`
+   - Set publish directory: `frontend/dist`
+   - Add environment variable:
+     ```
+     VITE_RENDER_BACKEND_URL=https://your-backend-name.onrender.com/api
+     ```
+
+#### Important Notes
+- The frontend automatically detects the backend URL on Render
+- If auto-detection fails, set `VITE_RENDER_BACKEND_URL` environment variable
+- Example: If frontend is `myapp.onrender.com`, backend should be `myapp-backend.onrender.com`
+
 ### Docker Deployment (Recommended)
 
 ```bash

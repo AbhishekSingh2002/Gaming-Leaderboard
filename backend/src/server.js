@@ -1,8 +1,5 @@
 // Load New Relic first (before any other require statements)
-if (process.env.NEW_RELIC_LICENSE_KEY) {
-  require('./config/newrelic');
-  require('newrelic');
-}
+require('../newrelic');
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const app = require('./app');

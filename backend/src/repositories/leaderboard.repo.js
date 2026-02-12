@@ -98,7 +98,10 @@ class LeaderboardRepository {
         SELECT 
           user_id,
           total_score,
-          ROW_NUMBER() OVER (ORDER BY total_score DESC) as rank
+          ROW_NUMBER() OVER (ORDER BY 
+            CASE WHEN total_score = 0 THEN 2 ELSE 1 END,
+            total_score DESC
+          ) as rank
         FROM leaderboard
       )
       SELECT 
@@ -133,6 +136,43 @@ class LeaderboardRepository {
     const query = 'SELECT id, username, join_date FROM users WHERE id = $1';
     const result = await pool.query(query, [userId]);
     return result.rows[0] || null;
+  }
+
+  /**
+   * Create a new user
+   * @param {Object} client - Database client (for transactions)
+   * @param {Number} userId - User ID
+   */
+  async createUser(client, userId) {
+    // First try to get existing user
+    const existingUser = await this.getUserById(userId);
+    if (existingUser) {
+      return existingUser;
+    }
+    
+    const query = `
+      INSERT INTO users (id, username)
+      VALUES ($1, $2)
+      RETURNING id, username
+    `;
+    const result = await (client || pool).query(query, [userId, `user_${userId}`]);
+    return result.rows[0];
+  }
+
+  /**
+   * Create leaderboard entry for user
+   * @param {Object} client - Database client (for transactions)
+   * @param {Number} userId - User ID
+   * @param {Number} score - Initial score
+   */
+  async createLeaderboardEntry(client, userId, score) {
+    const query = `
+      INSERT INTO leaderboard (user_id, total_score)
+      VALUES ($1, $2)
+      RETURNING id, user_id, total_score
+    `;
+    const result = await (client || pool).query(query, [userId, score]);
+    return result.rows[0];
   }
 
   /**
