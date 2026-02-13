@@ -22,7 +22,6 @@ app.use('/api', apiLimiter);
 app.get('/api/health', leaderboardController.healthCheck.bind(leaderboardController));
 
 // Leaderboard routes with specific rate limiting for submit
-app.post('/api/leaderboard/submit', submitScoreLimiter, leaderboardRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 // Error handling
